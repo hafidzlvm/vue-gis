@@ -4,6 +4,7 @@ import { useMessageStore } from './message'
 import { useConfigAPI } from './apis/config'
 import { useMapStore } from './map'
 import { layerSchema } from "../schema/layerSchema";
+import { isNullOrEmptyObject } from "../utils";
 
 export const useLayerStore = defineStore('vuegis_layer', () => {
   const message = useMessageStore()
@@ -21,53 +22,82 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
    *
    * @param {string} layerApi 
    * @param {any} [layerOverride=null] 
-   * @param {array} layerData 
+   * @param {array} layersData 
    * @return  void
    */
-  async function toLoadLayerFile(layerApi, layerOverride = null, layerData) {
-    if (!layerApi && !layerData ) return  
+  async function toLoadLayerFile(layerApi, layerOverride = null, layersData) {
+    if (!layerApi && !layersData ) return  
     message.toToggleLoading({
       text: "load map layers",
     });
-    let layers = {};
+    let layers = [];
     
-    if(typeof layerData === 'object') {
-      if (typeof caches[layerData] === 'undefined') {
-        const resultLayer = layerSchema.safeParse(layerData);
-
-        if (resultLayer.success) {
+    if(typeof layersData === 'object') {
+      const resultLayer = layerSchema.safeParse(layersData);
+      if (resultLayer.success) {
+        if (isNullOrEmptyObject(caches)) {
           layers = resultLayer.data;
-          caches[layerData] = layers
+          layers.forEach(element => {
+            caches[element.id] = element
+            console.log('1 object',element.id, element)
+          });
         } else {
-          console.error(
-            "vuegis.stores.layer.toLoadLayerFile: ",
-            `could not load layer file ${resultLayer.error}`
-          );
+          // Updating the cache, and push layerData to layer
+          Object.keys(caches).forEach((key) => {
+            for (const layerData of resultLayer.data) {
+              console.log('2 object',layerData.id, layerData, key, caches[key])
+              if (layerData.id === key && layerData[layerData.id] === caches[key]) {
+                continue
+              }
+              // Add new data with new key caches wich mean layerData.id and only push new data layer
+              caches[layerData.id] = layerData
+              layers.push(layerData)
+            }
+          })
         }
-      } else if (typeof caches[layerData] !== 'undefined') {
-        layers = caches[layerData];
+      } else {
+        console.error(
+          "vuegis.stores.layer.toLoadLayerFile: ",
+          `could not load layer file ${resultLayer.error}`
+        );
       }
+      
     }
 
 
     if (typeof layerApi === 'string') {
-      if (typeof caches[layerApi] === 'undefined') {
-        const resultLayer = await configAPI.apiGET(layerApi)
-        
-        if (resultLayer && Array.isArray(resultLayer.data)) {
+      const resultLayer = await configAPI.apiGET(layerApi)
+      if (resultLayer && Array.isArray(resultLayer.data)) {
+        if (isNullOrEmptyObject(caches)) {
           layers = resultLayer.data
+          layers.forEach(element => {
+            caches[element.id] = element
+            console.log('1 string',element.id, element)
+          })
         } else {
-          console.error(
-            'vuegis.stores.layer.toLoadLayerFile: ',
-            `could not load layer file ${layerApi}`
-          )
-          return
+          // Updating the cache, and push layerData to layer
+          Object.keys(caches).forEach((key) => {
+            for (const layerData of resultLayer.data) {
+              console.log('2 string',layerData.id, layerData, key, caches[key])
+              if (layerData.id === key && layerData[layerData.id] === caches[key]) {
+                continue
+              }
+              caches[layerData.id] = layerData
+              // Add new data with new key caches wich mean layerData.id
+              layers.push(layerData)
+            }
+          })
         }
-      } else if (typeof caches[layerApi] !== 'undefined') {
-        layers = caches[layerApi]
+      } else {
+        console.error(
+          'vuegis.stores.layer.toLoadLayerFile: ',
+          `could not load layer file ${layerApi}`
+        )
+        return
       }
     }
-   
+    
+    console.log('toLoadLayerFile before isArray',caches, layers)
     if (!Array.isArray(layers)) {
       console.error(
         'vuegis.stores.layer.toLoadLayerFile: ',
@@ -95,7 +125,7 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
       if (typeof groups.value[layer.group] === 'undefined') {
         groups.value[layer.group] = []
       }
-      console.log(layer)
+      console.log('result each toLoadLayerFile',layer)
       src.value[layer.id] = layer
 
       categories.value[layer.category][layer.category_order] = layer
@@ -136,7 +166,7 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
     force = null,
     $data = {}
   }) {
-    console.log(layerId)
+    console.log('toggleLayer',layerId)
     try {
       if (typeof src.value[layerId] === 'undefined' || src.value[layerId] === null) {
         console.error(
@@ -145,13 +175,14 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
         )
         return
       }
-      src.value[layerId].show = force !== null ? force : !src.value[layerId].show
+      // show: indent to initialShow, make sure to use show:false while using toggleLayer on widget
+      src.value[layerId].show = force !== null ? force : !src.value[layerId].show 
 
       if (sources[layerId]) {
-        console.log('run first')
+        console.log('toggleLayer','run first')
         sources[layerId].visible = src.value[layerId].show
       } else if (src.value[layerId].show) {
-        console.log('run second')
+        console.log('toggleLayer','run second')
         sources[layerId] = await map.toLoadLayer(src.value[layerId], $data)
       }
     } catch (error) {

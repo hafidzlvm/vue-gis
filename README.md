@@ -239,7 +239,7 @@ A layer is a distinct collection of geographic data that is displayed and manage
 | category | String | Category of layer, selected one available in **category.json**. |
 | group | String | Group of layer, selected one available in **group.json**. |
 | enable | Boolean | Set true to make layer readable and false to skip layer. |
-| show | Boolean | Set true to make a layer initial load. |
+| show | Boolean | Set true to make a layer initial load, indent to initialShow. |
 | title | String | The title of layer. |
 | type | String | Type of layer (*GeojsonLayer*, *WMSLayer*, *MapImageLayer*). |
 | content | String | Type shown by layer (*image*, *line*, *point*). |

@@ -286,6 +286,9 @@ export const useMapStore = defineStore('vuegis_map', () => {
    * @return  mixed
    */
   function toViewMethod(method, args = []) {
+    if (!method) {
+      return arcgis.view
+    }
     return arcgis.view[method](...(args))
   }
 

@@ -4,7 +4,6 @@ import { useMessageStore } from './message'
 import { useConfigAPI } from './apis/config'
 import { useMapStore } from './map'
 import { layerSchema } from "../schema/layerSchema";
-import { isNullOrEmptyObject } from "../utils";
 
 export const useLayerStore = defineStore('vuegis_layer', () => {
   const message = useMessageStore()
@@ -38,7 +37,6 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
         layers = resultLayer.data;
         layers.forEach(element => {
           caches[element.id] = element
-          console.log('1 object',element.id, element)
         })
       } else {
         console.error(
@@ -56,7 +54,6 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
         layers = resultLayer.data
         layers.forEach(element => {
           caches[element.id] = element
-          console.log('1 string',element.id, element)
         })
       } else {
         console.error(
@@ -67,7 +64,6 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
       }
     }
     
-    console.log('toLoadLayerFile before isArray',caches, layers)
     if (!Array.isArray(layers)) {
       console.error(
         'vuegis.stores.layer.toLoadLayerFile: ',
@@ -95,7 +91,6 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
       if (typeof groups.value[layer.group] === 'undefined') {
         groups.value[layer.group] = []
       }
-      console.log('result each toLoadLayerFile',layer)
       src.value[layer.id] = layer
 
       categories.value[layer.category][layer.category_order] = layer
@@ -136,7 +131,6 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
     force = null,
     $data = {}
   }) {
-    console.log('toggleLayer',layerId)
     try {
       if (typeof src.value[layerId] === 'undefined' || src.value[layerId] === null) {
         console.error(
@@ -149,10 +143,8 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
       src.value[layerId].show = force !== null ? force : !src.value[layerId].show 
 
       if (sources[layerId]) {
-        console.log('toggleLayer','run first')
         sources[layerId].visible = src.value[layerId].show
       } else if (src.value[layerId].show) {
-        console.log('toggleLayer','run second')
         sources[layerId] = await map.toLoadLayer(src.value[layerId], $data)
       }
     } catch (error) {

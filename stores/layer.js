@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { useMessageStore } from './message'
 import { useConfigAPI } from './apis/config'
 import { useMapStore } from './map'
+import { layerSchema } from "../schema/layerSchema";
 
 export const useLayerStore = defineStore('vuegis_layer', () => {
   const message = useMessageStore()
@@ -18,16 +19,30 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
   /**
    * Load layer file from server then set as src.
    *
-   * @param   string
-   * @param   mixed
+   * @param   object
    * @return  void
    */
-  async function toLoadLayerFile(layerFile, layerOverride = null) {
+  async function toLoadLayerFile(layerFile, layerOverride = null, layerData) {
+    if (!layerFile && !layerData ) return  
     message.toToggleLoading({
-      text: 'load map layers'
-    })
+      text: "load map layers",
+    });
 
-    let layers = {}
+    let layers = {};
+
+    
+    if (!layerFile || layerFile === null && typeof layerFile !== 'string') {
+      const resultLayer = layerSchema.safeParse(layerData);
+
+      if (resultLayer.success) {
+        layers = resultLayer.data;
+      } else {
+        console.error(
+          "vuegis.stores.layer.toLoadLayerFile: ",
+          `could not load layer file ${resultLayer.error}`
+        );
+      }
+    }
 
     if (typeof caches[layerFile] === 'undefined') {
       const resultLayer = await configAPI.apiGET(layerFile)

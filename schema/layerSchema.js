@@ -7,7 +7,7 @@ const typeEnum = z.enum([
   "MapImageLayer",
 ]);
 
-const layerSchema = z.object({
+const baseLayerSchema = z.object({
   id: z.number(),
   category: z.string(),
   group: z.string(),
@@ -21,7 +21,28 @@ const layerSchema = z.object({
   main_order: z.number(),
   category_order: z.number(),
   group_order: z.number(),
-  [typeEnum]: z.object(),
 });
+
+
+const layerSchema = z.array(
+  z.discriminatedUnion("type", [
+    baseLayerSchema.extend({
+      type: z.literal("GraphicsLayer"),
+      GraphicsLayer: z.record(z.any()).optional(),
+    }),
+    baseLayerSchema.extend({
+      type: z.literal("WMSLayer"),
+      WMSLayer: z.record(z.any()).optional(),
+    }),
+    baseLayerSchema.extend({
+      type: z.literal("GeojsonLayer"),
+      GeojsonLayer: z.record(z.any()).optional(),
+    }),
+    baseLayerSchema.extend({
+      type: z.literal("MapImageLayer"),
+      MapImageLayer: z.record(z.any()).optional(),
+    }),
+  ])
+);
 
 export { layerSchema, typeEnum };

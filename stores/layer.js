@@ -19,46 +19,62 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
   /**
    * Load layer file from server then set as src.
    *
-   * @param   object
+   * @param {string} layerApi 
+   * @param {any} [layerOverride=null] 
+   * @param {array} layerData 
    * @return  void
    */
-  async function toLoadLayerFile(layerFile, layerOverride = null, layerData) {
-    if (!layerFile && !layerData ) return  
+  async function toLoadLayerFile(layerApi, layerOverride = null, layerData) {
+    if (!layerApi && !layerData ) return  
     message.toToggleLoading({
       text: "load map layers",
     });
-
     let layers = {};
-
     
-    if (!layerFile || layerFile === null && typeof layerFile !== 'string') {
-      const resultLayer = layerSchema.safeParse(layerData);
+    if(typeof layerData === 'object') {
+      if (typeof caches[layerData] === 'undefined') {
+        const resultLayer = layerSchema.safeParse(layerData);
 
-      if (resultLayer.success) {
-        layers = resultLayer.data;
-      } else {
-        console.error(
-          "vuegis.stores.layer.toLoadLayerFile: ",
-          `could not load layer file ${resultLayer.error}`
-        );
+        if (resultLayer.success) {
+          layers = resultLayer.data;
+          caches[layerData] = layers
+        } else {
+          console.error(
+            "vuegis.stores.layer.toLoadLayerFile: ",
+            `could not load layer file ${resultLayer.error}`
+          );
+        }
+      } else if (typeof caches[layerData] !== 'undefined') {
+        layers = caches[layerData];
       }
     }
 
-    if (typeof caches[layerFile] === 'undefined') {
-      const resultLayer = await configAPI.apiGET(layerFile)
 
-      if (resultLayer && Array.isArray(resultLayer.data)) {
-        layers = resultLayer.data
-      } else {
-        console.error(
-          'vuegis.stores.layer.toLoadLayerFile: ',
-          `could not load layer file ${layerFile}`
-        )
+    if (typeof layerApi === 'string') {
+      if (typeof caches[layerApi] === 'undefined') {
+        const resultLayer = await configAPI.apiGET(layerApi)
+        
+        if (resultLayer && Array.isArray(resultLayer.data)) {
+          layers = resultLayer.data
+        } else {
+          console.error(
+            'vuegis.stores.layer.toLoadLayerFile: ',
+            `could not load layer file ${layerApi}`
+          )
+          return
+        }
+      } else if (typeof caches[layerApi] !== 'undefined') {
+        layers = caches[layerApi]
       }
-    } else {
-      layers = caches[layerFile]
     }
-
+   
+    if (!Array.isArray(layers)) {
+      console.error(
+        'vuegis.stores.layer.toLoadLayerFile: ',
+        `layer must be an array, not an object`
+      )
+      return
+    }
     for (var l of layers) {
       let layer = {}
 
@@ -79,7 +95,7 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
       if (typeof groups.value[layer.group] === 'undefined') {
         groups.value[layer.group] = []
       }
-
+      console.log(layer)
       src.value[layer.id] = layer
 
       categories.value[layer.category][layer.category_order] = layer
@@ -120,12 +136,29 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
     force = null,
     $data = {}
   }) {
-    src.value[layerId].show = force !== null ? force : !src.value[layerId].show
+    console.log(layerId)
+    try {
+      if (typeof src.value[layerId] === 'undefined' || src.value[layerId] === null) {
+        console.error(
+          'vuegis.stores.layer.toggleLayer: ',
+          `layer ${layerId} not found`
+        )
+        return
+      }
+      src.value[layerId].show = force !== null ? force : !src.value[layerId].show
 
-    if (sources[layerId]) {
-      sources[layerId].visible = src.value[layerId].show
-    } else if (src.value[layerId].show) {
-      sources[layerId] = await map.toLoadLayer(src.value[layerId], $data)
+      if (sources[layerId]) {
+        console.log('run first')
+        sources[layerId].visible = src.value[layerId].show
+      } else if (src.value[layerId].show) {
+        console.log('run second')
+        sources[layerId] = await map.toLoadLayer(src.value[layerId], $data)
+      }
+    } catch (error) {
+      console.error(
+        'vuegis.stores.layer.toggleLayer: ',
+        `could not toggle layer ${layerId} with error ${error}`
+      )
     }
 
     return sources[layerId]

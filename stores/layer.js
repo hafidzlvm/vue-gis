@@ -35,26 +35,11 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
     if(typeof layersData === 'object') {
       const resultLayer = layerSchema.safeParse(layersData);
       if (resultLayer.success) {
-        if (isNullOrEmptyObject(caches)) {
-          layers = resultLayer.data;
-          layers.forEach(element => {
-            caches[element.id] = element
-            console.log('1 object',element.id, element)
-          });
-        } else {
-          // Updating the cache, and push layerData to layer
-          Object.keys(caches).forEach((key) => {
-            for (const layerData of resultLayer.data) {
-              console.log('2 object',layerData.id, layerData, key, caches[key])
-              if (layerData.id === key && layerData[layerData.id] === caches[key]) {
-                continue
-              }
-              // Add new data with new key caches wich mean layerData.id and only push new data layer
-              caches[layerData.id] = layerData
-              layers.push(layerData)
-            }
-          })
-        }
+        layers = resultLayer.data;
+        layers.forEach(element => {
+          caches[element.id] = element
+          console.log('1 object',element.id, element)
+        })
       } else {
         console.error(
           "vuegis.stores.layer.toLoadLayerFile: ",
@@ -68,26 +53,11 @@ export const useLayerStore = defineStore('vuegis_layer', () => {
     if (typeof layerApi === 'string') {
       const resultLayer = await configAPI.apiGET(layerApi)
       if (resultLayer && Array.isArray(resultLayer.data)) {
-        if (isNullOrEmptyObject(caches)) {
-          layers = resultLayer.data
-          layers.forEach(element => {
-            caches[element.id] = element
-            console.log('1 string',element.id, element)
-          })
-        } else {
-          // Updating the cache, and push layerData to layer
-          Object.keys(caches).forEach((key) => {
-            for (const layerData of resultLayer.data) {
-              console.log('2 string',layerData.id, layerData, key, caches[key])
-              if (layerData.id === key && layerData[layerData.id] === caches[key]) {
-                continue
-              }
-              caches[layerData.id] = layerData
-              // Add new data with new key caches wich mean layerData.id
-              layers.push(layerData)
-            }
-          })
-        }
+        layers = resultLayer.data
+        layers.forEach(element => {
+          caches[element.id] = element
+          console.log('1 string',element.id, element)
+        })
       } else {
         console.error(
           'vuegis.stores.layer.toLoadLayerFile: ',

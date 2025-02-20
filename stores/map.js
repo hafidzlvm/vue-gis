@@ -83,6 +83,9 @@ export const useMapStore = defineStore('vuegis_map', () => {
    * @return  void
    */
   async function setBasemap(basemapConfig) {
+    if (!basemapConfig) {
+      return arcgis.map.basemap
+    }
     arcgis.map.basemap = await toLoadBasemap(basemapConfig)
   }
 
